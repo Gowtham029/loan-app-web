@@ -11,17 +11,21 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen bg-gray-50 dark:bg-gray-900 flex flex-col overflow-hidden">
       <Sidebar isOpen={sidebarOpen} />
       
-      <div className="lg:ml-64">
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+      <div className="lg:ml-64 flex flex-col h-full">
+        <div className="flex-shrink-0">
+          <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        </div>
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 overflow-auto p-6">
           {children}
         </main>
         
-        <Footer />
+        <div className="flex-shrink-0">
+          <Footer />
+        </div>
       </div>
 
       {sidebarOpen && (

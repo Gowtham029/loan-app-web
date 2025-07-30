@@ -5,6 +5,8 @@ import { Table } from '@/components/UI/Table';
 import { Modal } from '@/components/UI/Modal';
 import { Button } from '@/components/UI/Button';
 import { Input } from '@/components/UI/Input';
+import { Select } from '@/components/UI/Select';
+import { Tabs } from '@/components/UI/Tabs';
 import { Notification } from '@/components/UI/Notification';
 import { useNotification } from '@/hooks/useNotification';
 import { customerService } from '@/services/customerService';
@@ -13,27 +15,56 @@ import { Customer, TableColumn } from '@/types';
 export const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Customer | null>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [showDocForm, setShowDocForm] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { notification, showNotification, hideNotification } = useNotification();
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<Customer>();
 
+  const watchedFields = watch(['firstName', 'lastName', 'email', 'phoneNumber', 'dateOfBirth', 'gender', 'maritalStatus', 'nationality']);
+  const isFormValid = watchedFields.every(field => field && field.toString().trim() !== '');
+
+
+
   const columns: TableColumn[] = [
+    { 
+      key: 'photo', 
+      label: 'Photo', 
+      render: (value, row) => (
+        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white font-medium text-sm">
+          {row.photoUrl ? (
+            <img src={row.photoUrl} alt="Profile" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            `${row.firstName?.charAt(0) || ''}${row.lastName?.charAt(0) || ''}`
+          )}
+        </div>
+      )
+    },
     { key: 'customerId', label: 'Customer ID', sortable: true },
-    { key: 'fullName', label: 'Full Name', sortable: true },
+    { 
+      key: 'firstName', 
+      label: 'Full Name', 
+      sortable: true,
+      render: (value, row) => `${row.firstName} ${row.middleName || ''} ${row.lastName}`.trim()
+    },
     { key: 'email', label: 'Email', sortable: true },
-    { key: 'mobileNumber', label: 'Mobile', sortable: true },
-    { key: 'pan', label: 'PAN', sortable: true },
+    { key: 'phoneNumber', label: 'Phone', sortable: true },
+    { key: 'accountStatus', label: 'Status', sortable: true },
     { 
       key: 'createdAt', 
       label: 'Created At', 
@@ -44,12 +75,17 @@ export const Customers: React.FC = () => {
 
   const fetchCustomers = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await customerService.getAll(currentPage, 10, searchValue);
-      setCustomers(response.data);
-      setTotalPages(response.totalPages);
-    } catch (error) {
-      showNotification('error', 'Failed to fetch customers');
+      setCustomers(response.data || []);
+      setTotalPages(response.totalPages || 1);
+      setTotalCount(response.total || 0);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch customers';
+      setError(errorMessage);
+      setCustomers([]);
+      showNotification('error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -61,6 +97,8 @@ export const Customers: React.FC = () => {
 
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
+    setDocuments(customer.identificationDocuments || []);
+    setProfilePhoto(customer.photoUrl || null);
     reset(customer);
     setIsModalOpen(true);
   };
@@ -73,7 +111,7 @@ export const Customers: React.FC = () => {
     if (!deleteConfirm) return;
     
     try {
-      await customerService.delete(deleteConfirm.id);
+      await customerService.delete(deleteConfirm.customerId);
       showNotification('success', 'Customer deleted successfully');
       fetchCustomers();
     } catch (error) {
@@ -85,15 +123,22 @@ export const Customers: React.FC = () => {
 
   const onSubmit = async (data: Customer) => {
     try {
+      const customerData = { 
+        ...data, 
+        identificationDocuments: documents,
+        photoUrl: profilePhoto 
+      };
       if (editingCustomer) {
-        await customerService.update(editingCustomer.id, data);
+        await customerService.update(editingCustomer.customerId, customerData);
         showNotification('success', 'Customer updated successfully');
       } else {
-        await customerService.create(data);
+        await customerService.create(customerData);
         showNotification('success', 'Customer created successfully');
       }
       setIsModalOpen(false);
       setEditingCustomer(null);
+      setDocuments([]);
+      setProfilePhoto(null);
       reset();
       fetchCustomers();
     } catch (error) {
@@ -104,32 +149,72 @@ export const Customers: React.FC = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingCustomer(null);
+    setDocuments([]);
+    setShowDocForm(false);
+    setProfilePhoto(null);
     reset();
+  };
+
+  const addDocument = (docData: any) => {
+    setDocuments([...documents, { ...docData, id: Date.now() }]);
+    setShowDocForm(false);
+  };
+
+  const removeDocument = (id: number) => {
+    setDocuments(documents.filter(doc => doc.id !== id));
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const photoUrl = URL.createObjectURL(file);
+      setProfilePhoto(photoUrl);
+    }
   };
 
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customers</h1>
+      <div className="h-full flex flex-col">
+        <div className="flex-shrink-0 flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customers</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              Total: {totalCount} customers
+            </p>
+          </div>
           <Button onClick={() => setIsModalOpen(true)}>
             Add Customer
           </Button>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <Table
-            columns={columns}
-            data={customers}
-            loading={loading}
-            searchValue={searchValue}
-            onSearchChange={setSearchValue}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
+        <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
+          {error ? (
+            <div className="text-center py-8">
+              <div className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">
+                Error Loading Customers
+              </div>
+              <div className="text-gray-600 dark:text-gray-400 mb-4">
+                {error}
+              </div>
+              <Button onClick={fetchCustomers}>
+                Retry
+              </Button>
+            </div>
+          ) : (
+            <Table
+              columns={columns}
+              data={customers}
+              loading={loading}
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              onPageChange={setCurrentPage}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          )}
         </div>
       </div>
 
@@ -139,56 +224,270 @@ export const Customers: React.FC = () => {
         title={editingCustomer ? 'Edit Customer' : 'Add Customer'}
         size="xl"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Customer ID"
-              required
-              {...register('customerId', { required: 'Customer ID is required' })}
-              error={errors.customerId?.message}
-            />
-            <Input
-              label="Full Name"
-              required
-              {...register('fullName', { required: 'Full Name is required' })}
-              error={errors.fullName?.message}
-            />
-            <Input
-              label="Email"
-              type="email"
-              required
-              {...register('email', { required: 'Email is required' })}
-              error={errors.email?.message}
-            />
-            <Input
-              label="Mobile Number"
-              required
-              {...register('mobileNumber', { required: 'Mobile Number is required' })}
-              error={errors.mobileNumber?.message}
-            />
-            <Input
-              label="PAN"
-              required
-              {...register('pan', { required: 'PAN is required' })}
-              error={errors.pan?.message}
-            />
-            <Input
-              label="Aadhaar"
-              required
-              {...register('aadhaar', { required: 'Aadhaar is required' })}
-              error={errors.aadhaar?.message}
-            />
-          </div>
+        <div>
+          <Tabs
+            tabs={[
+              {
+                id: 'profile',
+                label: 'Profile *',
+                content: (
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {profilePhoto ? (
+                          <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-gray-500 text-sm">Photo</span>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="hidden"
+                          id="photoUpload"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => document.getElementById('photoUpload')?.click()}
+                        >
+                          Upload Photo
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        label="First Name"
+                        required
+                        {...register('firstName', { required: 'First Name is required' })}
+                        error={errors.firstName?.message}
+                      />
+                      <Input
+                        label="Middle Name"
+                        {...register('middleName')}
+                      />
+                      <Input
+                        label="Last Name"
+                        required
+                        {...register('lastName', { required: 'Last Name is required' })}
+                        error={errors.lastName?.message}
+                      />
+                      <Input
+                        label="Email"
+                        type="email"
+                        required
+                        {...register('email', { required: 'Email is required' })}
+                        error={errors.email?.message}
+                      />
+                      <Input
+                        label="Phone Number"
+                        required
+                        {...register('phoneNumber', { required: 'Phone Number is required' })}
+                        error={errors.phoneNumber?.message}
+                      />
+                      <Input
+                        label="Date of Birth"
+                        type="date"
+                        required
+                        {...register('dateOfBirth', { required: 'Date of Birth is required' })}
+                        error={errors.dateOfBirth?.message}
+                      />
+                      <Select
+                        label="Gender"
+                        required
+                        options={[
+                          { value: 'Male', label: 'Male' },
+                          { value: 'Female', label: 'Female' },
+                          { value: 'Other', label: 'Other' }
+                        ]}
+                        {...register('gender', { required: 'Gender is required' })}
+                        error={errors.gender?.message}
+                      />
+                      <Select
+                        label="Marital Status"
+                        required
+                        options={[
+                          { value: 'Single', label: 'Single' },
+                          { value: 'Married', label: 'Married' },
+                          { value: 'Divorced', label: 'Divorced' },
+                          { value: 'Widowed', label: 'Widowed' }
+                        ]}
+                        {...register('maritalStatus', { required: 'Marital Status is required' })}
+                        error={errors.maritalStatus?.message}
+                      />
+                      <Input
+                        label="Nationality"
+                        required
+                        {...register('nationality', { required: 'Nationality is required' })}
+                        error={errors.nationality?.message}
+                      />
+                      <Input
+                        label="Alternate Phone"
+                        {...register('alternatePhoneNumber')}
+                      />
+                    </div>
+                  </div>
+                )
+              },
+              {
+                id: 'address',
+                label: 'Address Details (Optional)',
+                content: (
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Street"
+                      {...register('currentAddress.street')}
+                    />
+                    <Input
+                      label="City"
+                      {...register('currentAddress.city')}
+                    />
+                    <Input
+                      label="State"
+                      {...register('currentAddress.state')}
+                    />
+                    <Input
+                      label="Postal Code"
+                      {...register('currentAddress.postalCode')}
+                    />
+                    <Input
+                      label="Country"
+                      {...register('currentAddress.country')}
+                    />
+                  </div>
+                )
+              },
+              {
+                id: 'employment',
+                label: 'Employment Details (Optional)',
+                content: (
+                  <div className="grid grid-cols-2 gap-4">
+                    <Select
+                      label="Employment Status"
+                      options={[
+                        { value: 'Employed', label: 'Employed' },
+                        { value: 'Self-Employed', label: 'Self-Employed' },
+                        { value: 'Unemployed', label: 'Unemployed' },
+                        { value: 'Retired', label: 'Retired' }
+                      ]}
+                      {...register('employmentDetails.employmentStatus')}
+                    />
+                    <Input
+                      label="Employer Name"
+                      {...register('employmentDetails.employerName')}
+                    />
+                    <Input
+                      label="Designation"
+                      {...register('employmentDetails.designation')}
+                    />
+                    <Input
+                      label="Work Experience (years)"
+                      type="number"
+                      {...register('employmentDetails.workExperience')}
+                    />
+                    <Input
+                      label="Monthly Income"
+                      type="number"
+                      {...register('employmentDetails.monthlyIncome')}
+                    />
+                    <Input
+                      label="Annual Income"
+                      type="number"
+                      {...register('employmentDetails.annualIncome')}
+                    />
+                  </div>
+                )
+              },
+              {
+                id: 'documents',
+                label: 'Identification Documents (Optional)',
+                content: (
+                  <div className="space-y-4">
+                    <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Authority</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expiry</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Document</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                          {documents.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                                No documents added yet
+                              </td>
+                            </tr>
+                          ) : (
+                            documents.map((doc) => (
+                              <tr key={doc.id}>
+                                <td className="px-4 py-2 text-sm">{doc.documentType}</td>
+                                <td className="px-4 py-2 text-sm">{doc.documentNumber}</td>
+                                <td className="px-4 py-2 text-sm">{doc.issuingAuthority}</td>
+                                <td className="px-4 py-2 text-sm">{doc.expiryDate}</td>
+                                <td className="px-4 py-2 text-sm">
+                                  {doc.documentImageUrl && (
+                                    <Button
+                                      type="button"
+                                      variant="secondary"
+                                      size="sm"
+                                      onClick={() => window.open(doc.documentImageUrl, '_blank')}
+                                    >
+                                      View
+                                    </Button>
+                                  )}
+                                </td>
+                                <td className="px-4 py-2 text-sm space-x-1">
+                                  <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => removeDocument(doc.id)}
+                                  >
+                                    Remove
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowDocForm(true)}
+                    >
+                      Add Document
+                    </Button>
+                  </div>
+                )
+              }
+            ]}
+          />
           
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
             <Button type="button" variant="secondary" onClick={handleModalClose}>
               Cancel
             </Button>
-            <Button type="submit">
+            <Button 
+              type="button" 
+              disabled={!editingCustomer && !isFormValid}
+              onClick={handleSubmit(onSubmit)}
+            >
               {editingCustomer ? 'Update' : 'Create'}
             </Button>
           </div>
-        </form>
+        </div>
       </Modal>
 
       <Modal
@@ -197,13 +496,90 @@ export const Customers: React.FC = () => {
         title="Confirm Delete"
       >
         <div className="space-y-4">
-          <p>Are you sure you want to delete customer "{deleteConfirm?.fullName}"?</p>
+          <p>Are you sure you want to delete customer "{deleteConfirm?.firstName} {deleteConfirm?.lastName}"?</p>
           <div className="flex justify-end space-x-2">
             <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>
               Cancel
             </Button>
             <Button variant="danger" onClick={confirmDelete}>
               Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showDocForm}
+        onClose={() => setShowDocForm(false)}
+        title="Add Document"
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Document Type"
+              options={[
+                { value: "Driver's License", label: "Driver's License" },
+                { value: 'Passport', label: 'Passport' },
+                { value: 'National ID', label: 'National ID' },
+                { value: 'Voter ID', label: 'Voter ID' }
+              ]}
+              id="docType"
+            />
+            <Input label="Document Number" id="docNumber" />
+            <Input label="Issuing Authority" id="docAuthority" />
+            <Input label="Issue Date" type="date" id="issueDate" />
+            <Input label="Expiry Date" type="date" id="expiryDate" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Upload Document
+              </label>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                id="docFile"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowDocForm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                const docType = (document.getElementById('docType') as HTMLSelectElement)?.value;
+                const docNumber = (document.getElementById('docNumber') as HTMLInputElement)?.value;
+                const docAuthority = (document.getElementById('docAuthority') as HTMLInputElement)?.value;
+                const issueDate = (document.getElementById('issueDate') as HTMLInputElement)?.value;
+                const expiryDate = (document.getElementById('expiryDate') as HTMLInputElement)?.value;
+                const docFile = (document.getElementById('docFile') as HTMLInputElement)?.files?.[0];
+                
+                if (docType && docNumber && docAuthority) {
+                  addDocument({
+                    documentType: docType,
+                    documentNumber: docNumber,
+                    issuingAuthority: docAuthority,
+                    issueDate,
+                    expiryDate,
+                    documentImageUrl: docFile ? URL.createObjectURL(docFile) : ''
+                  });
+                  // Clear form
+                  (document.getElementById('docType') as HTMLSelectElement).value = '';
+                  (document.getElementById('docNumber') as HTMLInputElement).value = '';
+                  (document.getElementById('docAuthority') as HTMLInputElement).value = '';
+                  (document.getElementById('issueDate') as HTMLInputElement).value = '';
+                  (document.getElementById('expiryDate') as HTMLInputElement).value = '';
+                  (document.getElementById('docFile') as HTMLInputElement).value = '';
+                }
+              }}
+            >
+              Add Document
             </Button>
           </div>
         </div>

@@ -9,7 +9,7 @@ export const api = axios.create({
   },
 });
 
-let authEnabled = true;
+let authEnabled = false;
 
 export const setAuthEnabled = (enabled: boolean) => {
   authEnabled = enabled;

@@ -1,61 +1,58 @@
 export interface Customer {
-  id: string;
   customerId: string;
-  fullName: string;
-  gender: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
   dateOfBirth: string;
-  pan: string;
-  aadhaar: string;
+  gender: string;
+  nationality: string;
+  maritalStatus: string;
   email: string;
-  mobileNumber: string;
-  photoId: string;
-  identityProofs: IdentityProof[];
-  addressDetails: AddressDetails;
+  phoneNumber: string;
+  alternatePhoneNumber?: string;
+  currentAddress: Address;
+  permanentAddress: Address;
   employmentDetails: EmploymentDetails;
-  bankDetails: BankDetails;
-  consent: Consent;
+  identificationDocuments?: IdentificationDocument[];
+  creditScore: number;
+  kycStatus: string;
+  riskProfile: string;
+  accountStatus: string;
+  fatcaStatus: boolean;
+  pepStatus: boolean;
+  customerNotes?: string;
+  photoUrl?: string;
   createdAt: string;
+  updatedAt: string;
+  createdBy: string;
 }
 
-export interface IdentityProof {
+export interface IdentificationDocument {
   documentType: string;
   documentNumber: string;
-  documentUrl: string;
-}
-
-export interface AddressDetails {
-  residentialAddress: Address;
-  permanentAddressSameAsResidential: boolean;
+  issuingAuthority: string;
+  issueDate: string;
+  expiryDate: string;
+  documentImageUrl?: string;
 }
 
 export interface Address {
-  addressLine1: string;
-  addressLine2: string;
+  street: string;
   city: string;
   state: string;
-  pincode: string;
-  ownership: string;
+  postalCode: string;
+  country: string;
+  addressType: string;
+  residenceSince: string;
 }
 
 export interface EmploymentDetails {
-  employmentType: string;
-  companyName: string;
+  employmentStatus: string;
+  employerName: string;
   designation: string;
-  workExperienceYears: number;
+  workExperience: number;
   monthlyIncome: number;
-}
-
-export interface BankDetails {
-  accountHolderName: string;
-  bankName: string;
-  accountNumber: string;
-  ifscCode: string;
-}
-
-export interface Consent {
-  kycConsent: boolean;
-  creditBureauConsent: boolean;
-  termsAndConditionsAccepted: boolean;
+  annualIncome: number;
 }
 
 export interface User {
