@@ -71,6 +71,52 @@ export interface User {
   phoneNumber?: string;
 }
 
+export interface Loan {
+  id: string;
+  loanId: string;
+  customer: {
+    customerId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+  };
+  principalAmount: number;
+  interestRateType: 'PERCENTAGE' | 'PAISA';
+  interestRate: number;
+  paisaRate?: {
+    ratePer100: number;
+    frequency: 'MONTHLY' | 'DAILY';
+  };
+  loanTerm: number;
+  repaymentFrequency: 'MONTHLY' | 'WEEKLY' | 'DAILY';
+  startDate: string;
+  endDate: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'PENDING';
+  balanceRemaining: number;
+  loanProvider: {
+    userId: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  updatedBy: {
+    userId: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  documents?: {
+    documentType: string;
+    documentNumber: string;
+    documentUrl: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;
