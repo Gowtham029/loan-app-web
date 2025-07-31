@@ -3,9 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
 import { Customers } from '@/pages/Customers';
+import { Users } from '@/pages/Users';
 import { Payments } from '@/pages/Payments';
 import { Loans } from '@/pages/Loans';
 import { Reports } from '@/pages/Reports';
@@ -21,14 +23,15 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/loans" element={<Loans />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/capital" element={<Capital />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/info" element={<Info />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+            <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+            <Route path="/loans" element={<ProtectedRoute><Loans /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/capital" element={<ProtectedRoute><Capital /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/info" element={<ProtectedRoute><Info /></ProtectedRoute>} />
           </Routes>
         </Router>
       </AuthProvider>

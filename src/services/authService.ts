@@ -8,6 +8,7 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    await api.post('/v1/auth/logout');
+    const token = localStorage.getItem('token');
+    await api.post('/v1/auth/logout', { token });
   }
 };

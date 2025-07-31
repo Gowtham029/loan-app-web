@@ -56,31 +56,30 @@ export interface EmploymentDetails {
 }
 
 export interface User {
-  userId: string;
   id: string;
   username: string;
-  fullName: string;
   email: string;
-  mobileNumber: string;
-  role: 'Admin' | 'Manager' | 'Viewer';
-  status: 'Active' | 'Inactive' | 'Suspended';
+  firstName: string;
+  lastName: string;
+  role: 'admin' | 'manager' | 'viewer';
+  status: 'active' | 'inactive';
   createdAt: string;
+  updatedAt: string;
   lastLoginAt: string;
-  password: string;
-  permissions: string[];
+  profilePicture?: string;
+  department?: string;
+  phoneNumber?: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 
 export interface LoginResponse {
-  status: string;
-  message: string;
+  success: boolean;
+  token: string;
   user: User;
-  access_token: string;
-  loginAt: string;
 }
 
 export interface LoginErrorResponse {

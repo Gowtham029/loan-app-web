@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Users, 
+  UserCheck,
   CreditCard, 
   Banknote, 
   FileText, 
@@ -11,10 +12,13 @@ import {
   Info 
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
+import { useAuth } from '@/contexts/AuthContext';
+import { canAccessUsers } from '@/utils/permissions';
 
-const menuItems = [
+const getMenuItems = (user: any) => [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/customers', label: 'Customers', icon: Users },
+  ...(canAccessUsers(user) ? [{ path: '/users', label: 'Users', icon: UserCheck }] : []),
   { path: '/payments', label: 'Payments', icon: CreditCard },
   { path: '/loans', label: 'Loans', icon: Banknote },
   { path: '/reports', label: 'Reports', icon: FileText },
@@ -29,6 +33,8 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const location = useLocation();
+  const { user } = useAuth();
+  const menuItems = getMenuItems(user);
 
   return (
     <aside className={cn(

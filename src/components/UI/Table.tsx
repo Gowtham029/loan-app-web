@@ -20,6 +20,8 @@ interface TableProps {
   onPageChange: (page: number) => void;
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
+  onAdd?: () => void;
+  entityName?: string;
 }
 
 export const Table: React.FC<TableProps> = ({
@@ -37,6 +39,8 @@ export const Table: React.FC<TableProps> = ({
   onPageChange,
   onEdit,
   onDelete,
+  onAdd,
+  entityName = 'items',
 }) => {
   const getPageNumbers = () => {
     const pages = [];
@@ -59,42 +63,64 @@ export const Table: React.FC<TableProps> = ({
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
-            placeholder="Search customers..."
+            placeholder={`Search ${entityName}...`}
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10 w-full"
           />
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
-          {totalCount} total customers
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+            {totalCount} total {entityName}
+          </div>
+          {onAdd && (
+            <Button onClick={onAdd}>
+              Add {entityName.slice(0, -1)}
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-        <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <table className="w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className={cn(
-                    'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400',
-                    column.sortable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'
-                  )}
-                  onClick={() => column.sortable && onSort?.(column.key)}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>{column.label}</span>
-                    {column.sortable && sortColumn === column.key && (
-                      sortDirection === 'asc' ? 
-                        <ChevronUp className="h-4 w-4" /> : 
-                        <ChevronDown className="h-4 w-4" />
+              {columns.map((column, index) => {
+                const getColumnWidth = () => {
+                  if (column.key === 'photo') return 'w-[10%]';
+                  if (column.key === 'customerId') return 'w-[15%]';
+                  if (column.key === 'firstName') return 'w-[25%]';
+                  if (column.key === 'email') return 'w-[30%]';
+                  if (column.key === 'phoneNumber') return 'w-[15%]';
+                  if (column.key === 'accountStatus') return 'w-[10%]';
+                  if (column.key === 'role') return 'w-[10%]';
+                  if (column.key === 'status') return 'w-[10%]';
+                  return 'w-auto';
+                };
+                
+                return (
+                  <th
+                    key={column.key}
+                    className={cn(
+                      'px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300',
+                      column.sortable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700',
+                      getColumnWidth()
                     )}
-                  </div>
-                </th>
-              ))}
+                    onClick={() => column.sortable && onSort?.(column.key)}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>{column.label}</span>
+                      {column.sortable && sortColumn === column.key && (
+                        sortDirection === 'asc' ? 
+                          <ChevronUp className="h-4 w-4" /> : 
+                          <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
               {(onEdit || onDelete) && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300 w-[15%]">
                   Actions
                 </th>
               )}
@@ -115,26 +141,48 @@ export const Table: React.FC<TableProps> = ({
               </tr>
             ) : (
               data.map((row, index) => (
-                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                  {columns.map((column) => (
-                    <td key={column.key} className="px-3 sm:px-6 py-4 text-sm text-gray-900 dark:text-gray-100 break-words max-w-0">
-                      <div className="truncate" title={column.render ? column.render(row[column.key], row) : row[column.key]}>
-                        {column.render ? column.render(row[column.key], row) : row[column.key]}
-                      </div>
-                    </td>
-                  ))}
+                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  {columns.map((column) => {
+                    const getColumnWidth = () => {
+                      if (column.key === 'photo') return 'w-[10%]';
+                      if (column.key === 'customerId') return 'w-[15%]';
+                      if (column.key === 'firstName') return 'w-[25%]';
+                      if (column.key === 'email') return 'w-[30%]';
+                      if (column.key === 'phoneNumber') return 'w-[15%]';
+                      if (column.key === 'accountStatus') return 'w-[10%]';
+                      if (column.key === 'role') return 'w-[10%]';
+                      if (column.key === 'status') return 'w-[10%]';
+                      return 'w-auto';
+                    };
+                    
+                    return (
+                      <td key={column.key} className={cn(
+                        "px-6 py-4 text-sm text-gray-900 dark:text-gray-100",
+                        getColumnWidth()
+                      )}>
+                        <div className={cn(
+                          column.key === 'photo' ? 'flex justify-center' : 'truncate',
+                          column.key !== 'photo' && 'pr-4'
+                        )} title={column.render ? undefined : row[column.key]}>
+                          {column.render ? column.render(row[column.key], row) : row[column.key]}
+                        </div>
+                      </td>
+                    );
+                  })}
                   {(onEdit || onDelete) && (
-                    <td className="px-3 sm:px-6 py-4 text-sm space-x-1 sm:space-x-2">
-                      {onEdit && (
-                        <Button size="sm" onClick={() => onEdit(row)}>
-                          Edit
-                        </Button>
-                      )}
-                      {onDelete && (
-                        <Button size="sm" variant="danger" onClick={() => onDelete(row)}>
-                          Delete
-                        </Button>
-                      )}
+                    <td className="px-6 py-4 text-right w-[15%]">
+                      <div className="flex justify-end space-x-2">
+                        {onEdit && (
+                          <Button size="sm" onClick={() => onEdit(row)}>
+                            Edit
+                          </Button>
+                        )}
+                        {onDelete && (
+                          <Button size="sm" variant="danger" onClick={() => onDelete(row)}>
+                            Delete
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   )}
                 </tr>

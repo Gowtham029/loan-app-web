@@ -24,25 +24,23 @@ export const Login: React.FC = () => {
     mode: 'onChange'
   });
 
-  const email = watch('email', '');
+  const username = watch('username', '');
   const password = watch('password', '');
-  const isFormValid = email.trim().length > 0 && password.trim().length > 0;
+  const isFormValid = username.trim().length > 0 && password.trim().length > 0;
 
   const onSubmit = async (data: LoginRequest) => {
     setLoading(true);
     try {
       const response = await authService.login(data);
       
-      console.log('Login response:', response);
-      
-      if (response.access_token && response.user) {
-        login(response.access_token, response.user);
+      if (response.success && response.token && response.user) {
+        login(response.token, response.user);
         showNotification('success', 'Login successful');
         setTimeout(() => {
           navigate('/dashboard');
         }, 100);
       } else {
-        showNotification('error', response.message || 'Login failed');
+        showNotification('error', 'Login failed');
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Login failed';
@@ -67,11 +65,11 @@ export const Login: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             <Input
-              label="Email"
-              type="email"
+              label="Username"
+              type="text"
               required
-              {...register('email', { required: 'Email is required' })}
-              error={errors.email?.message}
+              {...register('username', { required: 'Username is required' })}
+              error={errors.username?.message}
             />
 
             <Input

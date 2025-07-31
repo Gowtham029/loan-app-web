@@ -9,7 +9,7 @@ export const api = axios.create({
   },
 });
 
-let authEnabled = false;
+let authEnabled = true;
 
 export const setAuthEnabled = (enabled: boolean) => {
   authEnabled = enabled;
@@ -18,11 +18,9 @@ export const setAuthEnabled = (enabled: boolean) => {
 export const getAuthEnabled = () => authEnabled;
 
 api.interceptors.request.use((config) => {
-  if (authEnabled) {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -30,9 +28,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && authEnabled) {
+    if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('user');
+      window.location.replace('/login');
     }
     return Promise.reject(error);
   }

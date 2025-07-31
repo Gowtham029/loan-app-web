@@ -11,6 +11,8 @@ import { Notification } from '@/components/UI/Notification';
 import { useNotification } from '@/hooks/useNotification';
 import { customerService } from '@/services/customerService';
 import { Customer, TableColumn } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { hasPermission } from '@/utils/permissions';
 
 export const Customers: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -27,6 +29,7 @@ export const Customers: React.FC = () => {
   const [showDocForm, setShowDocForm] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const { notification, showNotification, hideNotification } = useNotification();
+  const { user: currentUser } = useAuth();
 
   const {
     register,
@@ -65,12 +68,6 @@ export const Customers: React.FC = () => {
     { key: 'email', label: 'Email', sortable: true },
     { key: 'phoneNumber', label: 'Phone', sortable: true },
     { key: 'accountStatus', label: 'Status', sortable: true },
-    { 
-      key: 'createdAt', 
-      label: 'Created At', 
-      sortable: true,
-      render: (value) => new Date(value).toLocaleDateString()
-    },
   ];
 
   const fetchCustomers = async () => {
@@ -96,6 +93,10 @@ export const Customers: React.FC = () => {
   }, [currentPage, searchValue]);
 
   const handleEdit = (customer: Customer) => {
+    if (!hasPermission(currentUser, 'write')) {
+      showNotification('error', 'You do not have permission to edit customers');
+      return;
+    }
     setEditingCustomer(customer);
     setDocuments(customer.identificationDocuments || []);
     setProfilePhoto(customer.photoUrl || null);
@@ -104,6 +105,10 @@ export const Customers: React.FC = () => {
   };
 
   const handleDelete = (customer: Customer) => {
+    if (!hasPermission(currentUser, 'delete')) {
+      showNotification('error', 'You do not have permission to delete customers');
+      return;
+    }
     setDeleteConfirm(customer);
   };
 
@@ -175,16 +180,11 @@ export const Customers: React.FC = () => {
   return (
     <Layout>
       <div className="h-full flex flex-col">
-        <div className="flex-shrink-0 flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customers</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Total: {totalCount} customers
-            </p>
-          </div>
-          <Button onClick={() => setIsModalOpen(true)}>
-            Add Customer
-          </Button>
+        <div className="flex-shrink-0 mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Customers</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Total: {totalCount} customers
+          </p>
         </div>
 
         <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow p-6 overflow-hidden">
@@ -211,8 +211,10 @@ export const Customers: React.FC = () => {
               totalPages={totalPages}
               totalCount={totalCount}
               onPageChange={setCurrentPage}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+              onEdit={hasPermission(currentUser, 'write') ? handleEdit : undefined}
+              onDelete={hasPermission(currentUser, 'delete') ? handleDelete : undefined}
+              onAdd={hasPermission(currentUser, 'write') ? () => setIsModalOpen(true) : undefined}
+              entityName="customers"
             />
           )}
         </div>
