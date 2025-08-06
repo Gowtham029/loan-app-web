@@ -117,6 +117,47 @@ export interface Loan {
   updatedAt: string;
 }
 
+export interface Payment {
+  _id: string;
+  paymentId: string;
+  loanId: string;
+  customerId: string;
+  paymentDetails: {
+    dueDate: string;
+    paidDate: string | null;
+    expectedAmount: number;
+    paidAmount: number;
+    breakdown: {
+      principalPortion: number;
+      interestPortion: number;
+      penaltyPortion: number;
+      lateFeesPortion: number;
+      savingsFromEarlyPayment?: number;
+    };
+  };
+  paymentMethod: {
+    type: 'BANK_TRANSFER' | 'CASH' | 'UPI' | 'CHEQUE';
+    reference: string;
+    bankName?: string;
+    accountNumber?: string;
+  };
+  status: 'COMPLETED' | 'PENDING' | 'FAILED' | 'PENDING_VERIFICATION' | 'DELETED';
+  paymentType: 'FULL_SETTLEMENT' | 'REGULAR' | 'PARTIAL';
+  isPartialPayment: boolean;
+  daysPastDue: number;
+  outstandingAfterPayment: {
+    remainingPrincipal: number;
+    remainingInterest: number;
+    totalRemaining: number;
+  };
+  processedBy: string;
+  processedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  failureReason?: string;
+  verificationNotes?: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;

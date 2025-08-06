@@ -17,12 +17,11 @@ import { canAccessUsers } from '@/utils/permissions';
 
 const getMenuItems = (user: any) => [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/customers', label: 'Customers', icon: Users },
-  ...(canAccessUsers(user) ? [{ path: '/users', label: 'Users', icon: UserCheck }] : []),
-  { path: '/payments', label: 'Payments', icon: CreditCard },
   { path: '/loans', label: 'Loans', icon: Banknote },
-  { path: '/reports', label: 'Reports', icon: FileText },
+  { path: '/payments', label: 'Payments', icon: CreditCard },
+  { path: '/customers', label: 'Customers', icon: Users },
   { path: '/capital', label: 'Capital', icon: Building },
+  ...(canAccessUsers(user) ? [{ path: '/users', label: 'Users', icon: UserCheck }] : []),
   { path: '/settings', label: 'Settings', icon: Settings },
   { path: '/info', label: 'Info', icon: Info },
 ];

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronUp, ChevronDown, Search } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Eye } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { TableColumn } from '@/types';
 import { Button } from './Button';
@@ -21,6 +21,7 @@ interface TableProps {
   onEdit?: (item: any) => void;
   onDelete?: (item: any) => void;
   onAdd?: () => void;
+  onViewPayments?: (item: any) => void;
   entityName?: string;
 }
 
@@ -40,6 +41,7 @@ export const Table: React.FC<TableProps> = ({
   onEdit,
   onDelete,
   onAdd,
+  onViewPayments,
   entityName = 'items',
 }) => {
   const getPageNumbers = () => {
@@ -119,7 +121,7 @@ export const Table: React.FC<TableProps> = ({
                   </th>
                 );
               })}
-              {(onEdit || onDelete) && (
+              {(onEdit || onDelete || onViewPayments) && (
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300 w-[15%]">
                   Actions
                 </th>
@@ -169,9 +171,19 @@ export const Table: React.FC<TableProps> = ({
                       </td>
                     );
                   })}
-                  {(onEdit || onDelete) && (
+                  {(onEdit || onDelete || onViewPayments) && (
                     <td className="px-6 py-4 text-right w-[15%]">
                       <div className="flex justify-end space-x-2">
+                        {onViewPayments && (
+                          <button
+                            onClick={() => onViewPayments(row)}
+                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 rounded-md transition-colors duration-200 border border-blue-200 dark:border-blue-800"
+                            title="View Payments"
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            Payments
+                          </button>
+                        )}
                         {onEdit && (
                           <Button size="sm" onClick={() => onEdit(row)}>
                             Edit

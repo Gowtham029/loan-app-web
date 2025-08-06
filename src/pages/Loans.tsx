@@ -28,6 +28,9 @@ export const Loans: React.FC = () => {
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerResults, setCustomerResults] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [viewPaymentsModal, setViewPaymentsModal] = useState(false);
+  const [selectedLoanPayments, setSelectedLoanPayments] = useState<any[]>([]);
+  const [selectedLoanId, setSelectedLoanId] = useState<string>('');
   const { notification, showNotification, hideNotification } = useNotification();
   const { user: currentUser } = useAuth();
 
@@ -201,6 +204,22 @@ export const Loans: React.FC = () => {
     }
   };
 
+  const handleViewPayments = async (loan: Loan) => {
+    try {
+      const response = await fetch(`/api/v1/payments?loanId=${loan.loanId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const data = await response.json();
+      setSelectedLoanPayments(data.data?.payments || []);
+      setSelectedLoanId(loan.loanId);
+      setViewPaymentsModal(true);
+    } catch (error) {
+      showNotification('error', 'Failed to fetch payments');
+    }
+  };
+
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingLoan(null);
@@ -249,6 +268,7 @@ export const Loans: React.FC = () => {
               onEdit={canWrite ? handleEdit : undefined}
               onDelete={canWrite ? handleDelete : undefined}
               onAdd={canWrite ? () => setIsModalOpen(true) : undefined}
+              onViewPayments={handleViewPayments}
               entityName="loans"
             />
           )}
@@ -418,6 +438,58 @@ export const Loans: React.FC = () => {
             <Button variant="danger" onClick={confirmDelete}>
               Delete
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={viewPaymentsModal}
+        onClose={() => setViewPaymentsModal(false)}
+        title={`Payments for Loan ${selectedLoanId}`}
+        size="xl"
+      >
+        <div className="space-y-4">
+          {selectedLoanPayments.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No payments found for this loan</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+                  {selectedLoanPayments.map((payment) => (
+                    <tr key={payment._id}>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{payment.paymentId}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₹{payment.paymentDetails.paidAmount.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={cn('px-2 py-1 rounded-full text-xs font-medium', 
+                          payment.status === 'COMPLETED' ? 'text-green-600 bg-green-100' :
+                          payment.status === 'PENDING' ? 'text-yellow-600 bg-yellow-100' :
+                          payment.status === 'FAILED' ? 'text-red-600 bg-red-100' :
+                          'text-gray-600 bg-gray-100'
+                        )}>
+                          {payment.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                        {payment.paymentDetails.paidDate ? new Date(payment.paymentDetails.paidDate).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{payment.paymentMethod.type}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => setViewPaymentsModal(false)}>Close</Button>
           </div>
         </div>
       </Modal>
