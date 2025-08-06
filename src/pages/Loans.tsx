@@ -325,7 +325,7 @@ export const Loans: React.FC = () => {
                             {customer.firstName} {customer.lastName}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {customer.email} • {customer.phoneNumber}
+                            {customer.phoneNumber}
                           </div>
                         </button>
                       ))}

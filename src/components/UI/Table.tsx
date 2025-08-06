@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronUp, ChevronDown, Search, Eye } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Eye, Edit, Trash2 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { TableColumn } from '@/types';
 import { Button } from './Button';
@@ -83,46 +83,33 @@ export const Table: React.FC<TableProps> = ({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-        <table className="w-full table-fixed divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
+      <div className="flex-1 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="overflow-auto max-h-full">
+          <table className="w-full table-auto">
+            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 sticky top-0 z-10">
             <tr>
-              {columns.map((column, index) => {
-                const getColumnWidth = () => {
-                  if (column.key === 'photo') return 'w-[10%]';
-                  if (column.key === 'customerId') return 'w-[15%]';
-                  if (column.key === 'firstName') return 'w-[25%]';
-                  if (column.key === 'email') return 'w-[30%]';
-                  if (column.key === 'phoneNumber') return 'w-[15%]';
-                  if (column.key === 'accountStatus') return 'w-[10%]';
-                  if (column.key === 'role') return 'w-[10%]';
-                  if (column.key === 'status') return 'w-[10%]';
-                  return 'w-auto';
-                };
-                
-                return (
-                  <th
-                    key={column.key}
-                    className={cn(
-                      'px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300',
-                      column.sortable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700',
-                      getColumnWidth()
+              {columns.map((column, index) => (
+                <th
+                  key={column.key}
+                  className={cn(
+                    'px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300',
+                    column.key === 'photo' ? 'text-center' : 'text-left',
+                    column.sortable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'
+                  )}
+                  onClick={() => column.sortable && onSort?.(column.key)}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>{column.label}</span>
+                    {column.sortable && sortColumn === column.key && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="h-4 w-4" /> : 
+                        <ChevronDown className="h-4 w-4" />
                     )}
-                    onClick={() => column.sortable && onSort?.(column.key)}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>{column.label}</span>
-                      {column.sortable && sortColumn === column.key && (
-                        sortDirection === 'asc' ? 
-                          <ChevronUp className="h-4 w-4" /> : 
-                          <ChevronDown className="h-4 w-4" />
-                      )}
-                    </div>
-                  </th>
-                );
-              })}
+                  </div>
+                </th>
+              ))}
               {(onEdit || onDelete || onViewPayments) && (
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300 w-[15%]">
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider dark:text-gray-300">
                   Actions
                 </th>
               )}
@@ -144,55 +131,43 @@ export const Table: React.FC<TableProps> = ({
             ) : (
               data.map((row, index) => (
                 <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  {columns.map((column) => {
-                    const getColumnWidth = () => {
-                      if (column.key === 'photo') return 'w-[10%]';
-                      if (column.key === 'customerId') return 'w-[15%]';
-                      if (column.key === 'firstName') return 'w-[25%]';
-                      if (column.key === 'email') return 'w-[30%]';
-                      if (column.key === 'phoneNumber') return 'w-[15%]';
-                      if (column.key === 'accountStatus') return 'w-[10%]';
-                      if (column.key === 'role') return 'w-[10%]';
-                      if (column.key === 'status') return 'w-[10%]';
-                      return 'w-auto';
-                    };
-                    
-                    return (
-                      <td key={column.key} className={cn(
-                        "px-6 py-4 text-sm text-gray-900 dark:text-gray-100",
-                        getColumnWidth()
-                      )}>
-                        <div className={cn(
-                          column.key === 'photo' ? 'flex justify-center' : 'truncate',
-                          column.key !== 'photo' && 'pr-4'
-                        )} title={column.render ? undefined : row[column.key]}>
-                          {column.render ? column.render(row[column.key], row) : row[column.key]}
-                        </div>
-                      </td>
-                    );
-                  })}
+                  {columns.map((column) => (
+                    <td key={column.key} className={cn(
+                      'px-6 py-4 text-sm text-gray-900 dark:text-gray-100',
+                      column.key === 'photo' ? 'text-center' : 'text-left'
+                    )}>
+                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                    </td>
+                  ))}
                   {(onEdit || onDelete || onViewPayments) && (
-                    <td className="px-6 py-4 text-right w-[15%]">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-6 py-4 text-center">  
+                      <div className="flex justify-center items-center space-x-3">
                         {onViewPayments && (
                           <button
                             onClick={() => onViewPayments(row)}
-                            className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 rounded-md transition-colors duration-200 border border-blue-200 dark:border-blue-800"
+                            className="inline-flex items-center justify-center w-9 h-9 text-blue-600 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
                             title="View Payments"
                           >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            Payments
+                            <Eye className="h-4 w-4" />
                           </button>
                         )}
                         {onEdit && (
-                          <Button size="sm" onClick={() => onEdit(row)}>
-                            Edit
-                          </Button>
+                          <button
+                            onClick={() => onEdit(row)}
+                            className="inline-flex items-center justify-center w-9 h-9 text-green-600 bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                         )}
                         {onDelete && (
-                          <Button size="sm" variant="danger" onClick={() => onDelete(row)}>
-                            Delete
-                          </Button>
+                          <button
+                            onClick={() => onDelete(row)}
+                            className="inline-flex items-center justify-center w-9 h-9 text-red-600 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 rounded-full transition-all duration-200 shadow-sm hover:shadow-md"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         )}
                       </div>
                     </td>
@@ -201,7 +176,8 @@ export const Table: React.FC<TableProps> = ({
               ))
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {totalCount > 0 && (
