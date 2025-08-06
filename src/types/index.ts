@@ -10,21 +10,20 @@ export interface Customer {
   email: string;
   phoneNumber: string;
   alternatePhoneNumber?: string;
+  photoUrl?: string;
   currentAddress: Address;
   permanentAddress: Address;
-  employmentDetails: EmploymentDetails;
   identificationDocuments?: IdentificationDocument[];
+  employmentDetails: EmploymentDetails;
   creditScore: number;
   kycStatus: string;
-  riskProfile: string;
   accountStatus: string;
   fatcaStatus: boolean;
   pepStatus: boolean;
   customerNotes?: string;
-  photoUrl?: string;
-  createdAt: string;
-  updatedAt: string;
   createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface IdentificationDocument {
@@ -33,7 +32,7 @@ export interface IdentificationDocument {
   issuingAuthority: string;
   issueDate: string;
   expiryDate: string;
-  documentImageUrl?: string;
+  documentUrl?: string;
 }
 
 export interface Address {

@@ -27,7 +27,11 @@ export const Customers: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<Customer | null>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [showDocForm, setShowDocForm] = useState(false);
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<string | undefined>(undefined);
+  const [nationalitySearch, setNationalitySearch] = useState('India');
+  const [showNationalityOptions, setShowNationalityOptions] = useState(false);
+  const [originalCustomer, setOriginalCustomer] = useState<Customer | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
   const { notification, showNotification, hideNotification } = useNotification();
   const { user: currentUser } = useAuth();
 
@@ -36,11 +40,71 @@ export const Customers: React.FC = () => {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<Customer>();
 
-  const watchedFields = watch(['firstName', 'lastName', 'email', 'phoneNumber', 'dateOfBirth', 'gender', 'maritalStatus', 'nationality']);
+  const monthlyIncome = watch('employmentDetails.monthlyIncome');
+  const formData = watch();
+  
+  useEffect(() => {
+    if (monthlyIncome) {
+      setValue('employmentDetails.annualIncome', Number(monthlyIncome) * 12);
+    }
+  }, [monthlyIncome, setValue]);
+
+  useEffect(() => {
+    if (editingCustomer && originalCustomer && formData) {
+      // Check basic form fields
+      const basicFields = ['firstName', 'middleName', 'lastName', 'dateOfBirth', 'gender', 'maritalStatus', 'email', 'customerNotes', 'creditScore', 'kycStatus', 'accountStatus'];
+      const hasBasicChanges = basicFields.some(key => {
+        const current = formData[key] || '';
+        const original = originalCustomer[key] || '';
+        return String(current).trim() !== String(original).trim();
+      });
+      
+      // Check phone numbers
+      const currentPhone = formData.phoneNumber || '';
+      const originalPhone = originalCustomer.phoneNumber?.replace('+91', '') || '';
+      const hasPhoneChange = currentPhone !== originalPhone;
+      
+      const currentAltPhone = formData.alternatePhoneNumber || '';
+      const originalAltPhone = originalCustomer.alternatePhoneNumber?.replace('+91', '') || '';
+      const hasAltPhoneChange = currentAltPhone !== originalAltPhone;
+      
+      // Check nationality
+      const hasNationalityChange = nationalitySearch !== (originalCustomer.nationality || 'India');
+      
+      // Check photo
+      const hasPhotoChanges = profilePhoto !== originalCustomer.photoUrl;
+      
+      // Check documents
+      const originalDocs = originalCustomer.identificationDocuments || [];
+      const hasDocChanges = documents.length !== originalDocs.length || 
+        JSON.stringify(documents.map(d => ({...d, id: undefined}))) !== JSON.stringify(originalDocs);
+      
+      // Check address and employment (nested objects)
+      const hasAddressChanges = JSON.stringify(formData.currentAddress || {}) !== JSON.stringify(originalCustomer.currentAddress || {}) ||
+        JSON.stringify(formData.permanentAddress || {}) !== JSON.stringify(originalCustomer.permanentAddress || {});
+      
+      const hasEmploymentChanges = JSON.stringify(formData.employmentDetails || {}) !== JSON.stringify(originalCustomer.employmentDetails || {});
+      
+      setHasChanges(hasBasicChanges || hasPhoneChange || hasAltPhoneChange || hasNationalityChange || hasPhotoChanges || hasDocChanges || hasAddressChanges || hasEmploymentChanges);
+    } else {
+      setHasChanges(false);
+    }
+  }, [formData, originalCustomer, editingCustomer, profilePhoto, documents, nationalitySearch]);
+
+  const watchedFields = watch(['firstName', 'lastName', 'phoneNumber', 'dateOfBirth', 'gender', 'maritalStatus', 'nationality']);
   const isFormValid = watchedFields.every(field => field && field.toString().trim() !== '');
+
+  const countries = [
+    'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France', 'Japan', 'China', 'Brazil',
+    'Russia', 'South Africa', 'Mexico', 'Italy', 'Spain', 'Netherlands', 'Sweden', 'Norway', 'Denmark', 'Finland',
+    'Switzerland', 'Austria', 'Belgium', 'Portugal', 'Greece', 'Turkey', 'Egypt', 'Nigeria', 'Kenya', 'Ghana',
+    'Morocco', 'Algeria', 'Tunisia', 'Libya', 'Sudan', 'Ethiopia', 'Uganda', 'Tanzania', 'Zimbabwe', 'Botswana',
+    'Argentina', 'Chile', 'Colombia', 'Peru', 'Venezuela', 'Uruguay', 'Paraguay', 'Bolivia', 'Ecuador', 'Guyana'
+  ];
 
 
 
@@ -65,8 +129,23 @@ export const Customers: React.FC = () => {
       sortable: true,
       render: (value, row) => `${row.firstName} ${row.middleName || ''} ${row.lastName}`.trim()
     },
-    { key: 'email', label: 'Email', sortable: true },
     { key: 'phoneNumber', label: 'Phone', sortable: true },
+    { 
+      key: 'verification', 
+      label: 'Verification', 
+      render: (value, row) => {
+        const isVerified = row.identificationDocuments && row.identificationDocuments.length > 0;
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            isVerified 
+              ? 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/20' 
+              : 'text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/20'
+          }`}>
+            {isVerified ? 'Verified' : 'Unverified'}
+          </span>
+        );
+      }
+    },
     { key: 'accountStatus', label: 'Status', sortable: true },
   ];
 
@@ -92,15 +171,34 @@ export const Customers: React.FC = () => {
     fetchCustomers();
   }, [currentPage, searchValue]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.nationality-container')) {
+        setShowNationalityOptions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleEdit = (customer: Customer) => {
     if (!hasPermission(currentUser, 'write')) {
       showNotification('error', 'You do not have permission to edit customers');
       return;
     }
     setEditingCustomer(customer);
+    setOriginalCustomer(customer);
     setDocuments(customer.identificationDocuments || []);
-    setProfilePhoto(customer.photoUrl || null);
-    reset(customer);
+    setProfilePhoto(customer.photoUrl);
+    setNationalitySearch(customer.nationality || 'India');
+    
+    // Fix DOB format for input field
+    const customerWithFixedDOB = {
+      ...customer,
+      dateOfBirth: customer.dateOfBirth ? customer.dateOfBirth.split('T')[0] : ''
+    };
+    reset(customerWithFixedDOB);
     setIsModalOpen(true);
   };
 
@@ -128,14 +226,94 @@ export const Customers: React.FC = () => {
 
   const onSubmit = async (data: Customer) => {
     try {
-      const customerData = { 
-        ...data, 
-        identificationDocuments: documents,
-        photoUrl: profilePhoto 
+      const customerData: any = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        dateOfBirth: data.dateOfBirth,
+        gender: data.gender,
+        nationality: nationalitySearch || 'India',
+        maritalStatus: data.maritalStatus,
+        phoneNumber: data.phoneNumber,
+        kycStatus: data.kycStatus || 'Pending',
+        accountStatus: data.accountStatus || 'Active',
+        fatcaStatus: Boolean(data.fatcaStatus),
+        pepStatus: Boolean(data.pepStatus),
+        createdBy: currentUser?.username || 'admin'
       };
-      if (editingCustomer) {
-        await customerService.update(editingCustomer.customerId, customerData);
-        showNotification('success', 'Customer updated successfully');
+
+      // Only add fields with values
+      if (data.email?.trim()) customerData.email = data.email;
+      if (data.middleName?.trim()) customerData.middleName = data.middleName;
+      if (data.alternatePhoneNumber?.trim()) customerData.alternatePhoneNumber = data.alternatePhoneNumber;
+      if (profilePhoto) customerData.photoUrl = profilePhoto;
+      if (data.customerNotes?.trim()) customerData.customerNotes = data.customerNotes;
+      if (data.creditScore) customerData.creditScore = Number(data.creditScore);
+      
+      // Current Address - only add if has meaningful data
+      if (data.currentAddress) {
+        const currentAddr = Object.fromEntries(
+          Object.entries(data.currentAddress).filter(([key, value]) => value && String(value).trim())
+        );
+        if (Object.keys(currentAddr).length > 0) customerData.currentAddress = currentAddr;
+      }
+      
+      // Permanent Address - only add if has meaningful data
+      if (data.permanentAddress) {
+        const permanentAddr = Object.fromEntries(
+          Object.entries(data.permanentAddress).filter(([key, value]) => value && String(value).trim())
+        );
+        if (Object.keys(permanentAddr).length > 0) customerData.permanentAddress = permanentAddr;
+      }
+      
+      // Employment Details - only add if has meaningful data
+      if (data.employmentDetails) {
+        const employment = Object.fromEntries(
+          Object.entries(data.employmentDetails).filter(([key, value]) => value && String(value).trim())
+        );
+        if (Object.keys(employment).length > 0) {
+          customerData.employmentDetails = {
+            ...employment,
+            ...(employment.workExperience && { workExperience: Number(employment.workExperience) }),
+            ...(employment.monthlyIncome && { monthlyIncome: Number(employment.monthlyIncome) }),
+            ...(employment.annualIncome && { annualIncome: Number(employment.annualIncome) })
+          };
+        }
+      }
+      
+      // Identification Documents - only add if has documents
+      if (documents.length > 0) {
+        customerData.identificationDocuments = documents.map(doc => {
+          const { id, ...docWithoutId } = doc;
+          return Object.fromEntries(
+            Object.entries(docWithoutId).filter(([key, value]) => value && String(value).trim())
+          );
+        });
+      }
+      
+      if (editingCustomer && originalCustomer) {
+        // Only send modified fields
+        const modifiedData: any = {};
+        
+        // Compare basic fields
+        Object.keys(customerData).forEach(key => {
+          if (key === 'fatcaStatus' || key === 'pepStatus' || key === 'createdBy') return;
+          
+          if (key === 'phoneNumber' || key === 'alternatePhoneNumber') {
+            const originalPhone = key === 'phoneNumber' ? originalCustomer.phoneNumber : originalCustomer.alternatePhoneNumber;
+            if (customerData[key] !== originalPhone) {
+              modifiedData[key] = customerData[key];
+            }
+          } else if (JSON.stringify(customerData[key]) !== JSON.stringify(originalCustomer[key])) {
+            modifiedData[key] = customerData[key];
+          }
+        });
+        
+        if (Object.keys(modifiedData).length > 0) {
+          await customerService.update(editingCustomer.customerId, modifiedData);
+          showNotification('success', 'Customer updated successfully');
+        } else {
+          showNotification('info', 'No changes detected');
+        }
       } else {
         await customerService.create(customerData);
         showNotification('success', 'Customer created successfully');
@@ -143,7 +321,7 @@ export const Customers: React.FC = () => {
       setIsModalOpen(false);
       setEditingCustomer(null);
       setDocuments([]);
-      setProfilePhoto(null);
+      setProfilePhoto(undefined);
       reset();
       fetchCustomers();
     } catch (error) {
@@ -154,9 +332,13 @@ export const Customers: React.FC = () => {
   const handleModalClose = () => {
     setIsModalOpen(false);
     setEditingCustomer(null);
+    setOriginalCustomer(null);
+    setHasChanges(false);
     setDocuments([]);
     setShowDocForm(false);
-    setProfilePhoto(null);
+    setProfilePhoto(undefined);
+    setNationalitySearch('India');
+    setShowNationalityOptions(false);
     reset();
   };
 
@@ -280,16 +462,30 @@ export const Customers: React.FC = () => {
                       <Input
                         label="Email"
                         type="email"
-                        required
-                        {...register('email', { required: 'Email is required' })}
+                        {...register('email')}
                         error={errors.email?.message}
                       />
-                      <Input
-                        label="Phone Number"
-                        required
-                        {...register('phoneNumber', { required: 'Phone Number is required' })}
-                        error={errors.phoneNumber?.message}
-                      />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Phone Number <span className="text-red-500">*</span>
+                        </label>
+                        <div className="flex">
+                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">+91</span>
+                          <input
+                            type="tel"
+                            className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            placeholder="Enter 10-digit mobile number"
+                            {...register('phoneNumber', { 
+                              required: 'Phone Number is required',
+                              pattern: {
+                                value: /^[6-9]\d{9}$/,
+                                message: 'Enter valid 10-digit Indian mobile number'
+                              }
+                            })}
+                          />
+                        </div>
+                        {errors.phoneNumber && <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>}
+                      </div>
                       <Input
                         label="Date of Birth"
                         type="date"
@@ -320,16 +516,66 @@ export const Customers: React.FC = () => {
                         {...register('maritalStatus', { required: 'Marital Status is required' })}
                         error={errors.maritalStatus?.message}
                       />
-                      <Input
-                        label="Nationality"
-                        required
-                        {...register('nationality', { required: 'Nationality is required' })}
-                        error={errors.nationality?.message}
-                      />
-                      <Input
-                        label="Alternate Phone"
-                        {...register('alternatePhoneNumber')}
-                      />
+                      <div className="relative nationality-container">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Nationality <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                          value={nationalitySearch}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setNationalitySearch(value);
+                            setShowNationalityOptions(value.length > 0);
+                          }}
+                          onFocus={() => setShowNationalityOptions(nationalitySearch.length > 0)}
+                          placeholder="Search nationality..."
+                          {...register('nationality', { required: 'Nationality is required' })}
+                        />
+                        {showNationalityOptions && nationalitySearch.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {countries
+                              .filter(country => country.toLowerCase().includes(nationalitySearch.toLowerCase()))
+                              .slice(0, 10)
+                              .map((country) => (
+                                <button
+                                  key={country}
+                                  type="button"
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                                  onClick={() => {
+                                    setNationalitySearch(country);
+                                    setShowNationalityOptions(false);
+                                  }}
+                                >
+                                  {country}
+                                </button>
+                              ))
+                            }
+                          </div>
+                        )}
+                        {errors.nationality && <p className="mt-1 text-sm text-red-600">{errors.nationality.message}</p>}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Alternate Phone
+                        </label>
+                        <div className="flex">
+                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">+91</span>
+                          <input
+                            type="tel"
+                            className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                            placeholder="Enter 10-digit mobile number"
+                            {...register('alternatePhoneNumber', {
+                              pattern: {
+                                value: /^[6-9]\d{9}$/,
+                                message: 'Enter valid 10-digit Indian mobile number'
+                              }
+                            })}
+                          />
+                        </div>
+                        {errors.alternatePhoneNumber && <p className="mt-1 text-sm text-red-600">{errors.alternatePhoneNumber.message}</p>}
+                      </div>
                     </div>
                   </div>
                 )
@@ -398,7 +644,9 @@ export const Customers: React.FC = () => {
                     <Input
                       label="Annual Income"
                       type="number"
+                      disabled
                       {...register('employmentDetails.annualIncome')}
+                      className="bg-gray-100 dark:bg-gray-600 cursor-not-allowed"
                     />
                   </div>
                 )
@@ -435,12 +683,12 @@ export const Customers: React.FC = () => {
                                 <td className="px-4 py-2 text-sm">{doc.issuingAuthority}</td>
                                 <td className="px-4 py-2 text-sm">{doc.expiryDate}</td>
                                 <td className="px-4 py-2 text-sm">
-                                  {doc.documentImageUrl && (
+                                  {doc.documentUrl && (
                                     <Button
                                       type="button"
                                       variant="secondary"
                                       size="sm"
-                                      onClick={() => window.open(doc.documentImageUrl, '_blank')}
+                                      onClick={() => window.open(doc.documentUrl, '_blank')}
                                     >
                                       View
                                     </Button>
@@ -483,7 +731,7 @@ export const Customers: React.FC = () => {
             </Button>
             <Button 
               type="button" 
-              disabled={!editingCustomer && !isFormValid}
+              disabled={editingCustomer ? !hasChanges : !isFormValid}
               onClick={handleSubmit(onSubmit)}
             >
               {editingCustomer ? 'Update' : 'Create'}
@@ -569,7 +817,7 @@ export const Customers: React.FC = () => {
                     issuingAuthority: docAuthority,
                     issueDate,
                     expiryDate,
-                    documentImageUrl: docFile ? URL.createObjectURL(docFile) : ''
+                    documentUrl: docFile ? URL.createObjectURL(docFile) : ''
                   });
                   // Clear form
                   (document.getElementById('docType') as HTMLSelectElement).value = '';
