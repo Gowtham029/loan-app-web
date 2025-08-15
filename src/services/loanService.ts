@@ -1,5 +1,5 @@
 import { api } from '@/utils/api';
-import { Loan, Customer } from '@/types';
+import { Loan, LoanRequest, LoanFilters, Customer } from '@/types';
 
 interface LoanApiResponse {
   success: boolean;
@@ -15,15 +15,18 @@ interface CustomerSearchResponse {
 }
 
 export const loanService = {
-  getAll: async (page = 1, limit = 10, search = '', filters = {}): Promise<{ data: Loan[]; total: number; totalPages: number }> => {
+  getAll: async (page = 1, limit = 10, filters: LoanFilters = {}): Promise<{ data: Loan[]; total: number; totalPages: number }> => {
     const params = new URLSearchParams({
       page: page.toString(),
-      limit: limit.toString(),
-      ...filters
+      limit: limit.toString()
     });
-    if (search.trim()) {
-      params.append('search', search);
-    }
+    
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== '') {
+        params.append(key, value.toString());
+      }
+    });
+    
     const response = await api.get<LoanApiResponse>(`/v1/loans?${params}`);
     return {
       data: response.data.loans,
@@ -37,13 +40,13 @@ export const loanService = {
     return response.data.loan;
   },
 
-  create: async (loan: Omit<Loan, 'id' | 'loanId' | 'createdAt' | 'updatedAt' | 'loanProvider' | 'updatedBy'>): Promise<Loan> => {
-    const response = await api.post<{ success: boolean; loan: Loan }>('/v1/loans', loan);
+  create: async (loanRequest: LoanRequest): Promise<Loan> => {
+    const response = await api.post<{ success: boolean; loan: Loan }>('/v1/loans', loanRequest);
     return response.data.loan;
   },
 
-  update: async (id: string, loan: Partial<Loan>): Promise<Loan> => {
-    const response = await api.patch<{ success: boolean; loan: Loan }>(`/v1/loans/${id}`, loan);
+  update: async (id: string, loanRequest: Partial<LoanRequest>): Promise<Loan> => {
+    const response = await api.patch<{ success: boolean; loan: Loan }>(`/v1/loans/${id}`, loanRequest);
     return response.data.loan;
   },
 

@@ -71,7 +71,6 @@ export interface User {
 }
 
 export interface Loan {
-  id: string;
   loanId: string;
   customer: {
     customerId: string;
@@ -80,19 +79,41 @@ export interface Loan {
     email: string;
     phoneNumber: string;
   };
-  principalAmount: number;
-  interestRateType: 'PERCENTAGE' | 'PAISA';
-  interestRate: number;
-  paisaRate?: {
-    ratePer100: number;
-    frequency: 'MONTHLY' | 'DAILY';
+  originalPrincipal: number;
+  currentPrincipal: number;
+  interestRate: {
+    annualPercentage: number;
+    monthlyPercentage: number;
+    totalInterestRupees: number;
+    monthlyInterestRupees: number;
   };
-  loanTerm: number;
+  termMonths: number;
+  remainingTerms: number;
   repaymentFrequency: 'MONTHLY' | 'WEEKLY' | 'DAILY';
+  type: 'FLEXIBLE' | 'FIXED';
   startDate: string;
   endDate: string;
-  status: 'ACTIVE' | 'COMPLETED' | 'DEFAULTED' | 'PENDING';
-  balanceRemaining: number;
+  expectedMonthlyPayment: number;
+  missedPayments: {
+    count: number;
+    closed: number;
+    totalMissedAmount: number;
+    compoundingDetails: {
+      penaltyInterestRate: number;
+      compoundedInterest: number;
+      principalPenalty: number;
+      totalPenaltyAmount: number;
+    };
+    lateFees: {
+      feePerMonth: number;
+      totalLateFees: number;
+    };
+  };
+  currentOutstanding: {
+    lastCalculatedDate: string;
+  };
+  status: 'ACTIVE' | 'OVERDUE' | 'DEFAULTED' | 'PAID_OFF' | 'RESTRUCTURED';
+  substatus: 'CURRENT' | 'GRACE_PERIOD' | 'DELINQUENT';
   loanProvider: {
     userId: string;
     username: string;
@@ -100,20 +121,37 @@ export interface Loan {
     lastName: string;
     email: string;
   };
-  updatedBy: {
-    userId: string;
-    username: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoanRequest {
+  customer: {
+    customerId: string;
     firstName: string;
     lastName: string;
     email: string;
+    phoneNumber: string;
   };
-  documents?: {
-    documentType: string;
-    documentNumber: string;
-    documentUrl: string;
-  }[];
-  createdAt: string;
-  updatedAt: string;
+  originalPrincipal: number;
+  interestRate: {
+    annualPercentage: number;
+    monthlyPercentage: number;
+  };
+  termMonths: number;
+  repaymentFrequency: 'MONTHLY' | 'WEEKLY' | 'DAILY';
+  type: 'FLEXIBLE' | 'FIXED';
+  startDate: string;
+  endDate: string;
+}
+
+export interface LoanFilters {
+  customerId?: string;
+  status?: 'ACTIVE' | 'OVERDUE' | 'DEFAULTED' | 'PAID_OFF' | 'RESTRUCTURED';
+  substatus?: 'CURRENT' | 'GRACE_PERIOD' | 'DELINQUENT';
+  search?: string;
+  sortBy?: 'createdAt' | 'originalPrincipal' | 'status';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface Payment {
