@@ -37,16 +37,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
 
   return (
     <aside className={cn(
-      'fixed left-0 top-0 z-40 h-screen w-64 transform bg-white dark:bg-gray-800 shadow-lg transition-transform duration-300 ease-in-out',
+      'fixed left-0 top-0 z-40 h-screen w-64 transform bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 shadow-2xl transition-transform duration-300 ease-in-out border-r border-slate-700',
       isOpen ? 'translate-x-0' : '-translate-x-full',
       'lg:translate-x-0'
     )}>
       <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center justify-center border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">HexaBee</h1>
+        <div className="flex h-20 items-center justify-center border-b border-slate-700/50 bg-gradient-to-r from-blue-600 to-indigo-600">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+              <span className="text-white font-bold text-lg">H</span>
+            </div>
+            <h1 className="text-xl font-bold text-white tracking-wide">HexaBee</h1>
+          </div>
         </div>
         
-        <nav className="flex-1 space-y-1 px-2 py-4">
+        <nav className="flex-1 px-4 py-6 space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -56,18 +61,46 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                  'group flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 relative overflow-hidden',
                   isActive
-                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/25 transform scale-105'
+                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white hover:transform hover:scale-105 hover:shadow-lg'
                 )}
               >
-                <Icon className="mr-3 h-5 w-5" />
-                {item.label}
+                <div className={cn(
+                  'flex items-center justify-center w-8 h-8 rounded-lg mr-3 transition-all duration-200',
+                  isActive 
+                    ? 'bg-white/20 shadow-inner' 
+                    : 'bg-slate-700/50 group-hover:bg-slate-600/50'
+                )}>
+                  <Icon className="h-4 w-4" />
+                </div>
+                <span className="font-medium tracking-wide">{item.label}</span>
+                {isActive && (
+                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-white rounded-l-full" />
+                )}
               </Link>
             );
           })}
         </nav>
+        
+        <div className="p-4 border-t border-slate-700/50">
+          <div className="flex items-center space-x-3 p-3 rounded-xl bg-slate-800/50">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-sm font-semibold">
+                {user?.firstName?.[0] || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user?.firstName} {user?.lastName}
+              </p>
+              <p className="text-xs text-slate-400 truncate">
+                {user?.role}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   );

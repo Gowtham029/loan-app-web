@@ -23,6 +23,7 @@ interface TableProps {
   onAdd?: () => void;
   onViewPayments?: (item: any) => void;
   entityName?: string;
+  fixedHeight?: boolean;
 }
 
 export const Table: React.FC<TableProps> = ({
@@ -43,6 +44,7 @@ export const Table: React.FC<TableProps> = ({
   onAdd,
   onViewPayments,
   entityName = 'items',
+  fixedHeight = false,
 }) => {
   const getPageNumbers = () => {
     const pages = [];
@@ -84,7 +86,7 @@ export const Table: React.FC<TableProps> = ({
       </div>
 
       <div className="flex-1 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="overflow-auto max-h-full">
+        <div className={cn("overflow-auto", fixedHeight ? "h-96" : "max-h-full")}>
           <table className="w-full table-auto">
             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 sticky top-0 z-10">
             <tr>
